@@ -108,7 +108,7 @@ end
 
 function build_bnf_regexp(node::ASTNode, rules::Vector{RuleSource})
     rule = build_rule_shortform_start(node)
-    push!(rule.source, "choose(UTF8String), \"$(escape_str(node.args[:value]))\"")
+    push!(rule.source, "choose(String, \"$(escape_str(node.args[:value]))\"")
     build_rule_shortform_end(rule, node)
     push!(rules, rule)
 end
