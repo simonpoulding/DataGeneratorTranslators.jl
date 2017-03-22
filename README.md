@@ -29,7 +29,7 @@ Translate an XML Schema Definition into a data generator using the function:
 
 	xsd_generator(io::IO, genname::Symbol, xsduri::AbstractString, startelement::AbstractString)
 
-where `io` is the file (or other output stream) for the generator, `genname` the name of the generater created (as a symbol), `xsduri` the file or URL of the XML Schema Definition, and `startelement` the top-level element in the generated XML (as this is not specified in XSD).
+where `io` is the file handle (or other output stream) for the generator, `genname` the name of the generater created (as a symbol), `xsduri` the file or URL of the XML Schema Definition, and `startelement` the top-level element in the generated XML (as this is not specified in XSD).
 
 Note that the created generators require the `LightXML` package (install using `Pkg.add("LightXML")`) in order to output XML.
 
@@ -41,7 +41,9 @@ For example:
 	
 	# XML Schema Definition is in file example.xsd
 	# Creates a generator (saved in the file generator.jl) for XML satisfying the XSD and with top level element <library>
-	xsd_generator("generator.jl", :ExampleXMLGen, "example.xsd", "library")
+	open("generator.jl", "w") do fh
+		xsd_generator(fh, :ExampleXMLGen, "example.xsd", "library")
+	end
 	
 	# include the generator
 	include("generator.jl")
@@ -65,7 +67,7 @@ Translate BNF or EBNF into a data generator using the function:
 
 	bnf_generator(io::IO, genname::Symbol, bnf::IO, startvariable::AbstractString, syntax::Symbol=:ebnf, addwhitespace::Bool=true)
 
-where `io` is the file (or other output stream) for the generator, `genname` the name of the generater created (as a symbol), `bnf` the file or stream containing the BNF, `syntax` should be left as the default of ``:ebnf` for *both* BNF and EBNF (this parameter is intended for support of specific BNF variants in future releases), `addwhitespace` determines whether or not the spaces are added between terminals in the generated string.
+where `io` is the file handle (or other output stream) for the generator, `genname` the name of the generater created (as a symbol), `bnf` the file or stream containing the BNF, `syntax` should be left as the default of ``:ebnf` for *both* BNF and EBNF (this parameter is intended for support of specific BNF variants in future releases), `addwhitespace` determines whether or not the spaces are added between terminals in the generated string.
 
 For convenience, the function (as above but without the first parameter):
 
