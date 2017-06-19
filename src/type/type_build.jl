@@ -110,7 +110,7 @@ function build_type_datatype(node::ASTNode, rules::Vector{RuleSource})
 	push!(rule.source, "      push!(newps, p)")
 	push!(rule.source, "    end")
 	push!(rule.source, "  end")
-	push!(rule.source, "  dt = DataGenerators.replace_datatype_parameters(dt, newps)::DataType")
+	push!(rule.source, "  dt = DataGeneratorTranslators.replace_datatype_parameters(dt, newps)::DataType")
     push!(rule.source, "  @assert dt <: t") # <: here works for both Types and TypeVars
     push!(rule.source, "  dt")
     
@@ -171,7 +171,7 @@ function build_type_type(node::ASTNode, rules::Vector{RuleSource})
 	# push!(rule.source, "      push!(newps, p)")
 	# push!(rule.source, "    end")
 	# push!(rule.source, "  end")
-	# push!(rule.source, "  DataGenerators.replace_datatype_parameters(totv , newps)::DataType")
+	# push!(rule.source, "  DataGeneratorTranslators.replace_datatype_parameters(totv , newps)::DataType")
 
     push!(rule.source, "    else")
     push!(rule.source, "      totv")
@@ -201,7 +201,7 @@ function build_type_method(node::ASTNode, rules::Vector{RuleSource})
     # ensure required datatype is fully parameterised (but not necessarily parameters of these types as parameters, i.e. only go one level deep)
     typerulename = build_called_child_rulename(node, :typeref)
 
-    push!(rule.source, "  paramdt = DataGenerators.replace_datatype_parameters(dt, map(p -> $(typerulename)(tvlookup, p, true), dt.parameters))") # any bound typevars to be resolved will be in the old bound typevar context, so use that
+    push!(rule.source, "  paramdt = DataGeneratorTranslators.replace_datatype_parameters(dt, map(p -> $(typerulename)(tvlookup, p, true), dt.parameters))") # any bound typevars to be resolved will be in the old bound typevar context, so use that
 	
     # create a new lookup context for bound typevars
     push!(rule.source, "  newtvlookup = Dict{TypeVar, Any}()") 
@@ -210,14 +210,14 @@ function build_type_method(node::ASTNode, rules::Vector{RuleSource})
     # if constructor method is a call, then we must match type to the first parameter of the signature tuple, and bind variables accordingly:
     push!(rule.source, "    @assert !isempty(argstype.parameters)")
     # note: first parameter of call may not have bound variables, so we force them to be as follows:
-    push!(rule.source, "    boundtvs = filter(tv -> tv.bound, DataGenerators.extract_typevars(argstype))") # get all bound type variables in the args Tuple
+    push!(rule.source, "    boundtvs = filter(tv -> tv.bound, DataGeneratorTranslators.extract_typevars(argstype))") # get all bound type variables in the args Tuple
     push!(rule.source, "    firstargtype = deepcopy(argstype.parameters[1])")
-    push!(rule.source, "    firstargtype = DataGenerators.bind_matching_unbound_typevars(firstargtype, boundtvs)") # bind these if they occur in the first parameter
-    push!(rule.source, "    DataGenerators.match_template_bound_typevars(firstargtype, Type{paramdt}, newtvlookup)") # and match them to value in the desired datatype
+    push!(rule.source, "    firstargtype = DataGeneratorTranslators.bind_matching_unbound_typevars(firstargtype, boundtvs)") # bind these if they occur in the first parameter
+    push!(rule.source, "    DataGeneratorTranslators.match_template_bound_typevars(firstargtype, Type{paramdt}, newtvlookup)") # and match them to value in the desired datatype
     # note: argstype remains unchanged
 	push!(rule.source, "  end")
 
-    push!(rule.source, "  argstype = DataGenerators.resolve_bound_typevars(argstype, newtvlookup)")
+    push!(rule.source, "  argstype = DataGeneratorTranslators.resolve_bound_typevars(argstype, newtvlookup)")
     # TODO also resolve unbound typevars (perhaps only some)
 
 	valuerulename = build_called_child_rulename(node, :valueref)
@@ -234,7 +234,7 @@ function build_type_method(node::ASTNode, rules::Vector{RuleSource})
     push!(rule.source, "    catch")
     push!(rule.source, "       \"[outputting args raised an exception]\"")
     push!(rule.source, "    end")
-	push!(rule.source, "    throw(DataGenerators.TypeGenerationException(Symbol(\"$(node.func)\"), \"calling function \$(fname) with signature \$(sig) using \$(argstr) to get a value for datatype \$(paramdt)\", exc))")
+	push!(rule.source, "    throw(DataGeneratorTranslators.TypeGenerationException(Symbol(\"$(node.func)\"), \"calling function \$(fname) with signature \$(sig) using \$(argstr) to get a value for datatype \$(paramdt)\", exc))")
 	push!(rule.source, "  end")
 	
     build_rule_end(rule, node)
@@ -267,7 +267,7 @@ function build_type_dt(node::ASTNode, rules::Vector{RuleSource})
 		# case (1) - type of this rule or *any* subtype could be valid (although this may not necessarily be true for some parameterisations)
 
 	    push!(rule.source, "    if isa(dtotv, TypeVar) && choose(Bool)")
-		push!(rule.source, "      DataGenerators.apply_type_parameters_to_primary(ruleprimarydt, dt)")
+		push!(rule.source, "      DataGeneratorTranslators.apply_type_parameters_to_primary(ruleprimarydt, dt)")
 	    push!(rule.source, "    else")
 
 		chooserulename = build_called_child_rulename(node, :choose)
@@ -298,7 +298,7 @@ function build_type_dt(node::ASTNode, rules::Vector{RuleSource})
         	# TODO, could 'hardcode' list of primary types from subtypes
         	# TODO: instead of dt, could use dt.name.primary
 	    end
-		push!(rule.source, "    throw(DataGenerators.TypeGenerationException(Symbol(\"$(node.func)\"), \"no applicable subtype rule for type \$(dt) in rule for $(ruleprimarydtstr)\"))")
+		push!(rule.source, "    throw(DataGeneratorTranslators.TypeGenerationException(Symbol(\"$(node.func)\"), \"no applicable subtype rule for type \$(dt) in rule for $(ruleprimarydtstr)\"))")
 
 		push!(rule.source, "  end")
 
@@ -307,11 +307,11 @@ function build_type_dt(node::ASTNode, rules::Vector{RuleSource})
 		# concrete datatype
 
 	    push!(rule.source, "  if isa(dtotv, TypeVar)")
-		push!(rule.source, "    DataGenerators.apply_type_parameters_to_primary(ruleprimarydt, dt)")
+		push!(rule.source, "    DataGeneratorTranslators.apply_type_parameters_to_primary(ruleprimarydt, dt)")
 		push!(rule.source, "  else")
 
 		chooserulename = build_called_child_rulename(node, :choose)
-		push!(rule.source, "    parameteriseddt = DataGenerators.apply_type_parameters_to_primary(ruleprimarydt, dt)")
+		push!(rule.source, "    parameteriseddt = DataGeneratorTranslators.apply_type_parameters_to_primary(ruleprimarydt, dt)")
 	    # push!(rule.source, "    $(chooserulename)(tvlookup, parameteriseddt)::parameteriseddt")  
 	    push!(rule.source, "    $(chooserulename)(tvlookup, parameteriseddt)")  
 	    # TODO type assert can't always work, so remove it for the moment.
@@ -409,7 +409,7 @@ function build_type_cm(node::ASTNode, rules::Vector{RuleSource})
 		else
 
 	    	push!(rule.comments, "#TODO write custom constructor method for type $(primarydt)")
-	    	push!(rule.source, "    throw(DataGenerators.TypeGenerationException(Symbol(\"$(node.func)\"), \"no constructor method for type $(primarydt)\"))")
+	    	push!(rule.source, "    throw(DataGeneratorTranslators.TypeGenerationException(Symbol(\"$(node.func)\"), \"no constructor method for type $(primarydt)\"))")
 
 		end # translator constructed types
 

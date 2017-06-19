@@ -18,7 +18,7 @@ function try_generating_for_type(t::Type, supplementalts::Vector{DataType} = Vec
 		x = try 
 			choose(gi)
 		catch exc
-			if isa(exc, DataGenerators.TypeGenerationException)
+			if isa(exc, DataGeneratorTranslators.TypeGenerationException)
 				if showerror
 					warn("$(exc)")
 				else
@@ -36,7 +36,7 @@ function try_generating_for_type(t::Type, supplementalts::Vector{DataType} = Vec
 			print(".")
 		end
 
-		@test DataGenerators.isa_tuple_adjust(x, t)
+		@test DataGeneratorTranslators.isa_tuple_adjust(x, t)
 
 	end
 	println()
@@ -106,7 +106,7 @@ end
 					continue
 				end
 			catch exc
-				if isa(exc, DataGenerators.TypeGenerationException)
+				if isa(exc, DataGeneratorTranslators.TypeGenerationException)
 					warn("skipping type returned from type generator owing to: $(exc)")
 					continue
 				else
