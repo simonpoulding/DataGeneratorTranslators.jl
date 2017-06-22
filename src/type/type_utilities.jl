@@ -257,17 +257,17 @@ function simplify_method(m::Method, dt::DataType)
 	if m.name == :Type
 		@assert m.sig <: Tuple
 		methodname = type_as_parseable_string(dt)
-		if isa(m.tvars, TypeVar)
-			if m.tvars.ub != Any 
-				methodname *= "{" * type_as_parseable_string(m.tvars.ub) * "}"
-			end
-		else
-			for tvar in m.tvars
-				if tvar.ub != Any 
-					methodname *= "{" * type_as_parseable_string(tvar.ub) * "}"
-				end
-			end
-		end
+		# if isa(m.tvars, TypeVar)
+		# 	if m.tvars.ub != Any
+		# 		methodname *= "{" * type_as_parseable_string(m.tvars.ub) * "}"
+		# 	end
+		# else
+		# 	for tvar in m.tvars
+		# 		if tvar.ub != Any
+		# 			methodname *= "{" * type_as_parseable_string(tvar.ub) * "}"
+		# 		end
+		# 	end
+		# end
 		SimplifiedMethod(methodname, Tuple{m.sig.parameters[2:end]...})
 		# println("For method $(m): converting to $(sm.name) with sig $(sm.sig)")
 	else
