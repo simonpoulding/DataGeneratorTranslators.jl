@@ -93,7 +93,41 @@ But for completeness, a regular expression can be translated into a data generat
 
 ### Translator from Julia Type Definition
 
-Details of this translator (which is currently experimental) will be added in the near future.
+Create a data generator for instance of Julia types using this translator.  Both concrete and abstract types are supported as well as parameterised and user-defined types.  The translator identifies potential constructor methods for the types, but calling such methods can give rise to exceptions - these are trapped and returned as `TypeGenerationException`s.
+
+The generator can be output to a stream (see example code above for the XSD):
+
+	type_generator(io::IO, genname::Symbol, t::Type, supporteddts::Vector{DataType}=Vector{DataType}())
+
+or, for convenience, included in the current context using:
+
+	type_generator(genname::Symbol, t::Type, supporteddts::Vector{DataType}=Vector{DataType}()) = include_generator(genname, type_generator, t, supporteddts)
+
+where `t` is the type.  The parameter `dt` identifies which subtrees of the type hierarchy should be considered when creating the generator as a list of root types of those subtrees - this avoids including the entire type hierarchy in the generator when types such as `Any` arise in the translation process.  It defaults to all the primary types used in the type `t`.
+
+
+#### Example 1 - Abstract  Type
+
+	julia> using DataGeneratorTranslators
+	julia> using DataGenerators
+	
+	julia> type_generator(:IntegerGen, Integer)
+	julia> g = IntegerGen()
+	julia> choose(g)
+	 -14033
+	julia> typeof(ans)
+	 Int16
+
+
+#### Example 2 - Parameterised Type
+
+	julia> type_generator(:RationalGen, Rational, [Number,])
+	julia> g = RationalGen()
+	julia> choose(g)
+	 10x44ba//0x0001
+	julia> typeof(ans)
+	 Rational{UInt16}
+
 
 
 ## References

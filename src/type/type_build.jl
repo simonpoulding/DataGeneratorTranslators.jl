@@ -223,10 +223,12 @@ function build_type_method(node::ASTNode, rules::Vector{RuleSource})
 	valuerulename = build_called_child_rulename(node, :valueref)
 	push!(rule.source, "  args = $(valuerulename)(newtvlookup, argstype)::Tuple") # note: newtvlookup
 
-	# push!(rule.source, "  info(\"calling \$(fname) with signature \$(sig) with args \$(args) to get a value for datatype \$(paramdt))\")")
-	push!(rule.source, "  f = eval(parse(\"\$(fname)\"))")
+	# push!(rule.source, "  info(\"calling \$(fname) with signature \$(DataGeneratorTranslators.type_as_parseable_string(sig)) with args \$(args) with types \$(map(a->typeof(a),args)) to get a value for datatype \$(paramdt))\")")
+	# push!(rule.source, "  f = eval(parse(\"\$(fname)\"))")
 	push!(rule.source, "  try")
-    push!(rule.source, "    invoke(f, sig, args...)::dt") # note: original sig
+    # push!(rule.source, "    f(args...)::dt") # note: original sig
+    # push!(rule.source, "    invoke(f, sig, args...)::dt") # note: original sig
+		push!(rule.source, "  eval(parse(\"\$(fname)\$(args)\"))::dt")
 	# note dt, not paramdt, in type assert: we are okay if parameters are ignored (I think - unless they are bound??)
 	push!(rule.source, "  catch exc")
     push!(rule.source, "    argstr = try")

@@ -1,5 +1,10 @@
 # TODO: add comments (including assumptions, and quirks of subtype)
 
+type SimplifiedMethod
+	name::String
+	sig::DataType
+end
+
 datatype_name(dt::DataType) = dt.name
 
 primary_datatype(dt::DataType) = datatype_name(dt).primary
@@ -190,15 +195,13 @@ is_partially_supported(x::Any, supporteddts::Vector{DataType}) = true # for type
 
 # is_partially_supported(ts::Vector{Type}, supporteddts::Vector{DataType}) = all(t -> is_partially_supported(t, supporteddts), ts)
 
-function is_partially_supported(m::Method, supporteddts::Vector{DataType})
+function is_partially_supported(m::SimplifiedMethod, supporteddts::Vector{DataType})
 	@assert m.sig <: Tuple
 	all(p->is_partially_supported(p, [supporteddts; Vararg]), m.sig.parameters)
 end
 
 partially_supported_constructor_methods(dt::DataType, supporteddts::Vector{DataType}) =
-	filter(m->is_partially_supported(m, supporteddts), methods(dt)) # TODO restrict by module?  # TODO other filters (e.g. deprecated)
-
-
+	filter(m->is_partially_supported(m, supporteddts), simplified_methods(dt)) # TODO restrict by module?  # TODO other filters (e.g. deprecated)
 
 is_fully_supported(dt::DataType, supporteddts::Vector{DataType}) = begin
 	(((dt == Any) && !isempty(supporteddts)) # Any is implicitly supported if there is at least datatype
@@ -218,13 +221,13 @@ is_fully_supported(x::Any, supporteddts::Vector{DataType}) = true # for type par
 
 # is_fully_supported(ts::Vector{Type}, supporteddts::Vector{DataType}) = all(t -> is_fully_supported(t, supporteddts), ts)
 
-function is_fully_supported(m::Method, supporteddts::Vector{DataType})
+function is_fully_supported(m::SimplifiedMethod, supporteddts::Vector{DataType})
 	@assert m.sig <: Tuple
 	all(p->is_fully_supported(p, [supporteddts; Vararg]), m.sig.parameters)
 end
 
 fully_supported_constructor_methods(dt::DataType, supporteddts::Vector{DataType}) =
-	filter(m->is_fully_supported(m, supporteddts), methods(dt)) # TODO restrict by module?  # TODO other filters (e.g. deprecated)
+	filter(m->is_fully_supported(m, supporteddts), simplified_methods(dt)) # TODO restrict by module?  # TODO other filters (e.g. deprecated)
 
 
 
@@ -247,3 +250,27 @@ replace_typevars_with_ub(u::Union) = Union{map(p -> replace_typevars_with_ub(p),
 
 replace_typevars_with_ub(x::Any) = x
 
+
+simplified_methods(dt::DataType) = map(m->simplify_method(m, dt), methods(dt))
+	
+function simplify_method(m::Method, dt::DataType)
+	if m.name == :Type
+		@assert m.sig <: Tuple
+		methodname = type_as_parseable_string(dt)
+		if isa(m.tvars, TypeVar)
+			if m.tvars.ub != Any 
+				methodname *= "{" * type_as_parseable_string(m.tvars.ub) * "}"
+			end
+		else
+			for tvar in m.tvars
+				if tvar.ub != Any 
+					methodname *= "{" * type_as_parseable_string(tvar.ub) * "}"
+				end
+			end
+		end
+		SimplifiedMethod(methodname, Tuple{m.sig.parameters[2:end]...})
+		# println("For method $(m): converting to $(sm.name) with sig $(sm.sig)")
+	else
+		SimplifiedMethod(string(m.name), m.sig)
+	end
+end 

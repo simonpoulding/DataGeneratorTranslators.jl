@@ -113,7 +113,7 @@ function create_dt_node(t::DataType, supporteddttree::Dict{DataType, Vector{Data
 	node
 end
 
-function create_constructor_method_node(cm::Method, primarydt::DataType)
+function create_constructor_method_node(cm::SimplifiedMethod, primarydt::DataType)
 	node = ASTNode(:cm)
 	node.args[:method] = cm
 	node.args[:datatype] = primarydt
